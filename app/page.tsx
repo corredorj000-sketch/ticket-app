@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import type { Event } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +27,7 @@ export default async function Home() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {events.map((event: Event) => (
+        {events.map((event: any) => (
           <div
             key={event.id}
             className="bg-zinc-900 rounded-2xl overflow-hidden"
