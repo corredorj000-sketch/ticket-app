@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Event } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +28,11 @@ export default async function Home() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        {events.map((event) => (
-
+        {events.map((event: Event) => (
           <div
             key={event.id}
             className="bg-zinc-900 rounded-2xl overflow-hidden"
           >
-
             <img
               src={event.image}
               alt={event.title}
@@ -42,7 +40,6 @@ export default async function Home() {
             />
 
             <div className="p-5">
-
               <h2 className="text-2xl font-bold">
                 {event.artist}
               </h2>
@@ -57,13 +54,9 @@ export default async function Home() {
               >
                 Comprar
               </a>
-
             </div>
-
           </div>
-
         ))}
-
       </div>
     </main>
   );
