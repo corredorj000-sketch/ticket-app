@@ -5,7 +5,7 @@ import {
   Suspense,
   useState,
 } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import {
   useRouter,
   useSearchParams,
@@ -53,9 +53,43 @@ function LoginForm() {
         return;
       }
 
+      /*
+       * Después del login obtenemos la sesión
+       * actualizada para conocer el rol del usuario.
+       */
+      const session = await getSession();
+
+      const role = session?.user?.role;
+
+      /*
+       * Si es administrador y no viene de un
+       * flujo específico de compra, entra
+       * directamente al panel administrativo.
+       */
+      if (role === "ADMIN") {
+        if (
+          callbackUrl &&
+          callbackUrl.startsWith("/") &&
+          !callbackUrl.startsWith("/login")
+        ) {
+          router.push(callbackUrl);
+        } else {
+          router.push("/admin");
+        }
+
+        return;
+      }
+
+      /*
+       * Usuario normal.
+       *
+       * Si venía desde una compra, regresamos
+       * al evento para continuar el proceso.
+       */
       if (
         callbackUrl &&
-        callbackUrl.startsWith("/")
+        callbackUrl.startsWith("/") &&
+        !callbackUrl.startsWith("/login")
       ) {
         router.push(callbackUrl);
       } else {
