@@ -1,0 +1,17 @@
+-- DropForeignKey
+ALTER TABLE "Order" DROP CONSTRAINT "Order_ticketId_fkey";
+
+-- AlterTable
+ALTER TABLE "EventZone" ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "eventZoneId" TEXT,
+ADD COLUMN     "quantity" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "unitPrice" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ALTER COLUMN "ticketId" DROP NOT NULL;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_eventZoneId_fkey" FOREIGN KEY ("eventZoneId") REFERENCES "EventZone"("id") ON DELETE SET NULL ON UPDATE CASCADE;

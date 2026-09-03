@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import StadiumSVG from "../../public/maps/movistar-arena.svg";
 
 export type CustomerInventoryItem = {
+  id: string;
   zone: string;
   quantity: number;
   price: number;

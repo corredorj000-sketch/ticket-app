@@ -45,18 +45,6 @@ model Venue {
   events Event[]
 }
 
-model EventZone {
-  id        String   @id @default(cuid())
-  zone      String
-  quantity  Int      @default(0)
-  price     Float
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([eventId, zone])
-}
-
 model Ticket {
   id        String       @id @default(cuid())
   price     Float
@@ -70,15 +58,37 @@ model Ticket {
   createdAt DateTime     @default(now())
 }
 
+model EventZone {
+  id        String   @id @default(cuid())
+  zone      String
+  quantity  Int      @default(0)
+  price     Float
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders    Order[]
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, zone])
+}
+
 model Order {
-  id        String      @id @default(cuid())
-  status    OrderStatus @default(PENDING)
-  userId    String
-  user      User        @relation(fields: [userId], references: [id])
-  ticketId  String
-  ticket    Ticket      @relation(fields: [ticketId], references: [id])
-  total     Float
-  createdAt DateTime    @default(now())
+  id          String      @id @default(cuid())
+  status      OrderStatus @default(PENDING)
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+
+  ticketId    String?
+  ticket      Ticket?     @relation(fields: [ticketId], references: [id])
+
+  eventZoneId String?
+  eventZone   EventZone?  @relation(fields: [eventZoneId], references: [id])
+
+  quantity    Int         @default(1)
+  unitPrice   Float       @default(0)
+  total       Float
+
+  createdAt   DateTime    @default(now())
 }
 
 enum OrderStatus {

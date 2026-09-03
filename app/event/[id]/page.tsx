@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { getSession } from "next-auth/react";
+
 import CustomerStadiumMap, {
   CustomerInventoryItem,
 } from "../../components/CustomerStadiumMap";
@@ -27,42 +29,35 @@ type EventData = {
 
 export default function EventPage() {
   const params = useParams();
+  const router = useRouter();
+
   const id = params.id as string;
 
-  const [event, setEvent] =
-    useState<EventData | null>(null);
-
+  const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [selectedZone, setSelectedZone] =
     useState<CustomerInventoryItem | null>(null);
 
   const [quantity, setQuantity] = useState(1);
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   useEffect(() => {
     async function loadEvent() {
       try {
-        const res = await fetch(
-          `/api/events/${id}`,
-          {
-            cache: "no-store",
-          }
-        );
+        const res = await fetch(`/api/events/${id}`, {
+          cache: "no-store",
+        });
 
         if (!res.ok) {
-          throw new Error(
-            "No se pudo cargar el evento"
-          );
+          throw new Error("No se pudo cargar el evento");
         }
 
         const data = await res.json();
 
         setEvent(data);
       } catch (error) {
-        console.error(
-          "LOAD EVENT ERROR:",
-          error
-        );
+        console.error("LOAD EVENT ERROR:", error);
       } finally {
         setLoading(false);
       }
@@ -97,21 +92,20 @@ export default function EventPage() {
     );
   }
 
+  const eventId = event.id;
+
   const isMovistar =
-    event.venue?.id ===
-    "lugar-movistar-bogota";
+    event.venue?.id === "lugar-movistar-bogota";
 
   const totalAvailable = event.zones.reduce(
     (total, zone) =>
-      total +
-      Math.max(0, zone.quantity),
+      total + Math.max(0, zone.quantity),
     0
   );
 
-  const total =
-    selectedZone
-      ? selectedZone.price * quantity
-      : 0;
+  const total = selectedZone
+    ? selectedZone.price * quantity
+    : 0;
 
   function handleZoneSelect(
     zone: CustomerInventoryItem | null
@@ -140,22 +134,84 @@ export default function EventPage() {
     );
   }
 
-  function handleContinue() {
-    if (!selectedZone) {
-      alert(
-        "Selecciona una zona primero."
+  async function handleContinue() {
+  if (!selectedZone) {
+    alert("Selecciona una zona primero.");
+    return;
+  }
+
+  if (quantity < 1) {
+    alert("Selecciona una cantidad válida.");
+    return;
+  }
+
+  if (quantity > selectedZone.quantity) {
+    alert("No hay suficientes entradas disponibles.");
+    return;
+  }
+
+  const zoneId = selectedZone.id;
+  const eventId = id;
+
+  setCreatingOrder(true);
+
+  try {
+    const session = await getSession();
+
+    if (!session?.user?.email) {
+      const callbackUrl = `/event/${id}`;
+
+      router.push(
+        `/login?callbackUrl=${encodeURIComponent(
+          callbackUrl
+        )}`
       );
+
       return;
     }
 
-    alert(
-      `Seleccionaste ${quantity} boleta(s) de ${selectedZone.zone}.`
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventId,
+        eventZoneId: zoneId,
+        quantity,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(
+        data.error ||
+          "No fue posible crear la reserva."
+      );
+
+      return;
+    }
+
+    router.push(`/checkout/${data.orderId}`);
+  } catch (error) {
+    console.error(
+      "CREATE ORDER ERROR:",
+      error
     );
+
+    alert(
+      "Ocurrió un error creando la reserva."
+    );
+  } finally {
+    setCreatingOrder(false);
   }
+}
 
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
+
         <div className="mb-8">
           <p className="mb-2 text-sm font-bold uppercase tracking-widest text-zinc-500">
             {event.artist}
@@ -178,15 +234,15 @@ export default function EventPage() {
               ·{" "}
               {new Date(
                 event.date
-              ).toLocaleDateString(
-                "es-CO"
-              )}
+              ).toLocaleDateString("es-CO")}
             </span>
           </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+
           <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]">
+
             <div className="border-b border-white/10 px-6 py-5">
               <h2 className="text-2xl font-black">
                 Selecciona tu zona
@@ -211,6 +267,7 @@ export default function EventPage() {
             ) : (
               <div className="flex min-h-[400px] items-center justify-center bg-[#101010]">
                 <div className="text-center">
+
                   <div className="mb-4 text-5xl">
                     🗺️
                   </div>
@@ -223,12 +280,15 @@ export default function EventPage() {
                     Este escenario todavía no
                     tiene mapa interactivo.
                   </p>
+
                 </div>
               </div>
             )}
+
           </section>
 
           <aside className="h-fit rounded-[28px] border border-white/10 bg-[#111] p-6 lg:sticky lg:top-6">
+
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
               Comprar Tickets
             </p>
@@ -240,6 +300,7 @@ export default function EventPage() {
             </h2>
 
             <div className="my-6 space-y-4 border-y border-white/10 py-6">
+
               <div className="flex justify-between gap-4">
                 <span className="text-zinc-500">
                   Fecha
@@ -248,9 +309,7 @@ export default function EventPage() {
                 <span className="font-bold">
                   {new Date(
                     event.date
-                  ).toLocaleDateString(
-                    "es-CO"
-                  )}
+                  ).toLocaleDateString("es-CO")}
                 </span>
               </div>
 
@@ -273,10 +332,12 @@ export default function EventPage() {
                   {totalAvailable} boletas
                 </span>
               </div>
+
             </div>
 
             {selectedZone ? (
               <>
+
                 <div>
                   <p className="text-sm text-zinc-500">
                     Precio por boleta
@@ -295,17 +356,18 @@ export default function EventPage() {
                 </div>
 
                 <div className="mt-6">
+
                   <p className="mb-3 text-sm font-bold text-zinc-400">
                     Cantidad
                   </p>
 
                   <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black p-2">
+
                     <button
                       type="button"
-                      onClick={
-                        decreaseQuantity
-                      }
-                      className="h-12 w-12 rounded-xl bg-white/10 text-xl font-black hover:bg-white/20"
+                      onClick={decreaseQuantity}
+                      disabled={creatingOrder}
+                      className="h-12 w-12 rounded-xl bg-white/10 text-xl font-black hover:bg-white/20 disabled:opacity-30"
                     >
                       −
                     </button>
@@ -316,21 +378,22 @@ export default function EventPage() {
 
                     <button
                       type="button"
-                      onClick={
-                        increaseQuantity
-                      }
+                      onClick={increaseQuantity}
                       disabled={
+                        creatingOrder ||
                         quantity >=
-                        selectedZone.quantity
+                          selectedZone.quantity
                       }
                       className="h-12 w-12 rounded-xl bg-white/10 text-xl font-black hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       +
                     </button>
+
                   </div>
                 </div>
 
                 <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-5">
+
                   <span className="text-zinc-500">
                     Total
                   </span>
@@ -341,20 +404,25 @@ export default function EventPage() {
                       "es-CO"
                     )}
                   </span>
+
                 </div>
 
                 <button
                   type="button"
-                  onClick={
-                    handleContinue
-                  }
-                  className="mt-6 w-full rounded-2xl bg-white px-6 py-4 text-lg font-black text-black transition hover:scale-[1.01]"
+                  onClick={handleContinue}
+                  disabled={creatingOrder}
+                  className="mt-6 w-full rounded-2xl bg-white px-6 py-4 text-lg font-black text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  CONTINUAR
+                  {creatingOrder
+                    ? "RESERVANDO..."
+                    : "CONTINUAR"}
                 </button>
+
               </>
             ) : (
+
               <div className="rounded-2xl border border-dashed border-white/10 bg-black p-5 text-center">
+
                 <p className="font-bold text-white">
                   Selecciona una zona en el mapa
                 </p>
@@ -363,9 +431,13 @@ export default function EventPage() {
                   Allí podrás ver precio,
                   disponibilidad y cantidad.
                 </p>
+
               </div>
+
             )}
+
           </aside>
+
         </div>
       </div>
     </main>

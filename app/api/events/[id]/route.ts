@@ -12,17 +12,23 @@ export async function GET(
       where: { id },
       include: {
         venue: true,
-        zones: {
-          orderBy: {
-            zone: "asc",
-          },
-        },
         tickets: {
           select: {
             id: true,
             price: true,
             section: true,
             status: true,
+          },
+        },
+        zones: {
+          select: {
+            id: true,
+            zone: true,
+            quantity: true,
+            price: true,
+          },
+          orderBy: {
+            zone: "asc",
           },
         },
       },
@@ -40,10 +46,7 @@ export async function GET(
     console.error("GET EVENT ERROR:", error);
 
     return NextResponse.json(
-      {
-        error: "Error obteniendo evento",
-        detail: error instanceof Error ? error.message : String(error),
-      },
+      { error: "Error obteniendo evento" },
       { status: 500 }
     );
   }
@@ -67,10 +70,7 @@ export async function DELETE(
     console.error("DELETE EVENT ERROR:", error);
 
     return NextResponse.json(
-      {
-        error: "Error eliminando evento",
-        detail: error instanceof Error ? error.message : String(error),
-      },
+      { error: "Error eliminando evento" },
       { status: 500 }
     );
   }
