@@ -62,8 +62,17 @@ export default function CheckoutPage() {
 
   const [loading, setLoading] = useState(true);
 
+  const [checkoutError, setCheckoutError] =
+    useState("");
+
+  const [preparingPayment, setPreparingPayment] =
+    useState(false);
+
   useEffect(() => {
     async function loadOrder() {
+      setLoading(true);
+      setCheckoutError("");
+
       try {
         const session = await getSession();
 
@@ -87,12 +96,11 @@ export default function CheckoutPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          alert(
+          setCheckoutError(
             data.error ||
               "No fue posible cargar el pedido."
           );
 
-          router.push("/");
           return;
         }
 
@@ -103,11 +111,9 @@ export default function CheckoutPage() {
           error
         );
 
-        alert(
-          "No fue posible cargar el checkout."
+        setCheckoutError(
+          "No fue posible cargar el checkout. Inténtalo nuevamente."
         );
-
-        router.push("/");
       } finally {
         setLoading(false);
       }
@@ -140,8 +146,71 @@ export default function CheckoutPage() {
     );
   }
 
+  if (checkoutError) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#050505] px-5 text-white">
+        <div className="w-full max-w-xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/[0.06] text-xl font-black text-red-400">
+            !
+          </div>
+
+          <p className="mt-7 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+            ClickTicketCo
+          </p>
+
+          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+            No pudimos cargar tu pedido
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-zinc-500">
+            {checkoutError}
+          </p>
+
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => {
+                setCheckoutError("");
+                setOrder(null);
+                setLoading(true);
+                window.location.reload();
+              }}
+              className="rounded-2xl bg-white px-7 py-4 text-sm font-black text-black transition-all duration-200 hover:-translate-y-1 hover:bg-zinc-200"
+            >
+              INTENTAR DE NUEVO
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-7 py-4 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-1 hover:bg-white/[0.07]"
+            >
+              VOLVER A EVENTOS
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!order) {
-    return null;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#050505] px-5 text-white">
+        <div className="text-center">
+          <p className="text-sm text-zinc-500">
+            No encontramos este pedido.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mt-6 rounded-2xl bg-white px-6 py-3 text-xs font-black text-black transition hover:bg-zinc-200"
+          >
+            VOLVER A EVENTOS
+          </button>
+        </div>
+      </main>
+    );
   }
 
   const event = order.event;
@@ -248,9 +317,7 @@ export default function CheckoutPage() {
                   </p>
 
                   <p className="mt-2 text-lg font-black">
-                    {formatPrice(
-                      order.unitPrice
-                    )}
+                    {formatPrice(order.unitPrice)}
                   </p>
                 </div>
 
@@ -261,9 +328,7 @@ export default function CheckoutPage() {
 
                   <p className="mt-2 text-sm font-bold leading-5 text-zinc-300">
                     {event?.date
-                      ? formatDate(
-                          event.date
-                        )
+                      ? formatDate(event.date)
                       : "—"}
                   </p>
                 </div>
@@ -343,9 +408,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <p className="text-sm font-black">
-                      {formatPrice(
-                        order.total
-                      )}
+                      {formatPrice(order.total)}
                     </p>
                   </div>
                 </div>
@@ -358,10 +421,8 @@ export default function CheckoutPage() {
                     </span>
 
                     <span className="font-bold text-zinc-300">
-                      {formatPrice(
-                        order.unitPrice
-                      )}{" "}
-                      × {order.quantity}
+                      {formatPrice(order.unitPrice)} ×{" "}
+                      {order.quantity}
                     </span>
                   </div>
 
@@ -390,9 +451,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <span className="text-3xl font-black tracking-tight">
-                      {formatPrice(
-                        order.total
-                      )}
+                      {formatPrice(order.total)}
                     </span>
                   </div>
                 </div>
@@ -400,14 +459,33 @@ export default function CheckoutPage() {
                 {/* Payment button */}
                 <button
                   type="button"
+                  disabled={preparingPayment}
                   onClick={() => {
-                    alert(
-                      "El siguiente paso será conectar el pago real con Wompi."
-                    );
+                    setPreparingPayment(true);
+
+                    setTimeout(() => {
+                      alert(
+                        "El siguiente paso será conectar el pago real con Wompi."
+                      );
+
+                      setPreparingPayment(false);
+                    }, 700);
                   }}
-                  className="mt-7 w-full rounded-2xl bg-white px-6 py-4 text-sm font-black text-black transition-all duration-200 hover:-translate-y-1 hover:bg-zinc-200 hover:shadow-xl hover:shadow-white/[0.08]"
+                  className="group mt-7 flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-black text-black transition-all duration-200 hover:-translate-y-1 hover:bg-zinc-200 hover:shadow-xl hover:shadow-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
-                  PAGAR AHORA
+                  {preparingPayment ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                      PREPARANDO PAGO...
+                    </>
+                  ) : (
+                    <>
+                      PAGAR AHORA
+                      <span className="transition-transform duration-200 group-hover:translate-x-1">
+                        →
+                      </span>
+                    </>
+                  )}
                 </button>
 
                 <div className="mt-5 flex items-start gap-3">

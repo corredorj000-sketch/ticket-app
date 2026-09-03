@@ -50,47 +50,35 @@ export default function EventPage() {
 
   const id = params.id as string;
 
-  const [event, setEvent] =
-    useState<EventData | null>(null);
+  const [event, setEvent] = useState<EventData | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [selectedZone, setSelectedZone] =
-    useState<CustomerInventoryItem | null>(
-      null
-    );
+    useState<CustomerInventoryItem | null>(null);
 
-  const [quantity, setQuantity] =
-    useState(1);
+  const [quantity, setQuantity] = useState(1);
 
-  const [creatingOrder, setCreatingOrder] =
-    useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+
+  const [orderError, setOrderError] = useState("");
 
   useEffect(() => {
     async function loadEvent() {
       try {
-        const res = await fetch(
-          `/api/events/${id}`,
-          {
-            cache: "no-store",
-          }
-        );
+        const res = await fetch(`/api/events/${id}`, {
+          cache: "no-store",
+        });
 
         if (!res.ok) {
-          throw new Error(
-            "No se pudo cargar el evento"
-          );
+          throw new Error("No se pudo cargar el evento");
         }
 
         const data = await res.json();
 
         setEvent(data);
       } catch (error) {
-        console.error(
-          "LOAD EVENT ERROR:",
-          error
-        );
+        console.error("LOAD EVENT ERROR:", error);
       } finally {
         setLoading(false);
       }
@@ -153,20 +141,18 @@ export default function EventPage() {
   const eventId = event.id;
 
   const isMovistar =
-    event.venue?.id ===
-    "lugar-movistar-bogota";
+    event.venue?.id === "lugar-movistar-bogota";
 
-  const totalAvailable =
-    event.zones.reduce(
-      (total, zone) =>
-        total + Math.max(0, zone.quantity),
-      0
-    );
+  const totalAvailable = event.zones.reduce(
+    (total, zone) => total + Math.max(0, zone.quantity),
+    0
+  );
 
-  const availableZones =
-    event.zones.filter(
-      (zone) => zone.quantity > 0
-    );
+  const availableZones = event.zones.filter(
+    (zone) => zone.quantity > 0
+  );
+
+  const eventSoldOut = totalAvailable === 0;
 
   const total = selectedZone
     ? selectedZone.price * quantity
@@ -175,6 +161,7 @@ export default function EventPage() {
   function handleZoneSelect(
     zone: CustomerInventoryItem | null
   ) {
+    setOrderError("");
     setSelectedZone(zone);
 
     if (zone) {
@@ -185,6 +172,8 @@ export default function EventPage() {
   function increaseQuantity() {
     if (!selectedZone) return;
 
+    setOrderError("");
+
     setQuantity((current) =>
       Math.min(
         selectedZone.quantity,
@@ -194,31 +183,28 @@ export default function EventPage() {
   }
 
   function decreaseQuantity() {
+    setOrderError("");
+
     setQuantity((current) =>
       Math.max(1, current - 1)
     );
   }
 
   async function handleContinue() {
+    setOrderError("");
+
     if (!selectedZone) {
-      alert(
-        "Selecciona una zona primero."
-      );
+      setOrderError("Selecciona una zona primero.");
       return;
     }
 
     if (quantity < 1) {
-      alert(
-        "Selecciona una cantidad válida."
-      );
+      setOrderError("Selecciona una cantidad válida.");
       return;
     }
 
-    if (
-      quantity >
-      selectedZone.quantity
-    ) {
-      alert(
+    if (quantity > selectedZone.quantity) {
+      setOrderError(
         "No hay suficientes entradas disponibles."
       );
       return;
@@ -233,8 +219,7 @@ export default function EventPage() {
       const session = await getSession();
 
       if (!session?.user?.email) {
-        const callbackUrl =
-          `/event/${id}`;
+        const callbackUrl = `/event/${id}`;
 
         router.push(
           `/login?callbackUrl=${encodeURIComponent(
@@ -245,27 +230,22 @@ export default function EventPage() {
         return;
       }
 
-      const response = await fetch(
-        "/api/orders",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            eventId: currentEventId,
-            eventZoneId: zoneId,
-            quantity,
-          }),
-        }
-      );
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: currentEventId,
+          eventZoneId: zoneId,
+          quantity,
+        }),
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        alert(
+        setOrderError(
           data.error ||
             "No fue posible crear la reserva."
         );
@@ -273,17 +253,12 @@ export default function EventPage() {
         return;
       }
 
-      router.push(
-        `/checkout/${data.orderId}`
-      );
+      router.push(`/checkout/${data.orderId}`);
     } catch (error) {
-      console.error(
-        "CREATE ORDER ERROR:",
-        error
-      );
+      console.error("CREATE ORDER ERROR:", error);
 
-      alert(
-        "Ocurrió un error creando la reserva."
+      setOrderError(
+        "Ocurrió un error creando la reserva. Inténtalo nuevamente."
       );
     } finally {
       setCreatingOrder(false);
@@ -325,25 +300,19 @@ export default function EventPage() {
             </h1>
 
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-zinc-400">
-              <span>
-                {event.venue?.name}
-              </span>
+              <span>{event.venue?.name}</span>
 
               <span className="text-zinc-700">
                 •
               </span>
 
-              <span>
-                {event.venue?.city}
-              </span>
+              <span>{event.venue?.city}</span>
 
               <span className="text-zinc-700">
                 •
               </span>
 
-              <span>
-                {formatDate(event.date)}
-              </span>
+              <span>{formatDate(event.date)}</span>
             </div>
           </div>
         </div>
@@ -423,9 +392,7 @@ export default function EventPage() {
                   selectedZone={
                     selectedZone?.zone || ""
                   }
-                  onZoneSelect={
-                    handleZoneSelect
-                  }
+                  onZoneSelect={handleZoneSelect}
                 />
               ) : (
                 <div className="flex min-h-[400px] items-center justify-center bg-[#101010] px-6">
@@ -595,9 +562,7 @@ export default function EventPage() {
                           onClick={
                             decreaseQuantity
                           }
-                          disabled={
-                            creatingOrder
-                          }
+                          disabled={creatingOrder}
                           className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-xl font-black transition hover:bg-white/[0.1] disabled:opacity-30"
                         >
                           −
@@ -646,24 +611,63 @@ export default function EventPage() {
                       </div>
                     </div>
 
+                    {/* Reservation error */}
+                    {orderError && (
+                      <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-4">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/[0.08] text-xs font-black text-red-400">
+                            !
+                          </span>
+
+                          <div>
+                            <p className="text-xs font-black text-red-300">
+                              No pudimos completar la
+                              reserva
+                            </p>
+
+                            <p className="mt-1 text-[11px] leading-5 text-red-400/70">
+                              {orderError}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Continue */}
                     <button
                       type="button"
-                      onClick={
-                        handleContinue
+                      onClick={handleContinue}
+                      disabled={
+                        creatingOrder ||
+                        eventSoldOut
                       }
-                      disabled={creatingOrder}
-                      className="mt-6 w-full rounded-2xl bg-white px-6 py-4 text-sm font-black text-black transition-all duration-200 hover:-translate-y-1 hover:bg-zinc-200 hover:shadow-xl hover:shadow-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      className={`group mt-6 flex w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black transition-all duration-200 ${
+                        eventSoldOut
+                          ? "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                          : "bg-white text-black hover:-translate-y-1 hover:bg-zinc-200 hover:shadow-xl hover:shadow-white/[0.08]"
+                      } disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0`}
                     >
-                      {creatingOrder
-                        ? "RESERVANDO..."
-                        : "CONTINUAR"}
+                      {eventSoldOut ? (
+                        "EVENTO AGOTADO"
+                      ) : creatingOrder ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                          RESERVANDO...
+                        </>
+                      ) : (
+                        <>
+                          CONTINUAR
+                          <span className="transition-transform duration-200 group-hover:translate-x-1">
+                            →
+                          </span>
+                        </>
+                      )}
                     </button>
 
                     <p className="mt-4 text-center text-[11px] leading-5 text-zinc-700">
-                      Al continuar se reservarán las
-                      entradas seleccionadas y serás
-                      dirigido al checkout.
+                      {eventSoldOut
+                        ? "No hay entradas disponibles para este evento."
+                        : "Al continuar se reservarán las entradas seleccionadas y serás dirigido al checkout."}
                     </p>
                   </>
                 ) : (
