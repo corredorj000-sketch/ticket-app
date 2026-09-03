@@ -9,14 +9,7 @@ export async function GET() {
       },
       include: {
         venue: true,
-        tickets: {
-          select: {
-            id: true,
-            price: true,
-            section: true,
-            status: true,
-          },
-        },
+        tickets: true,
       },
     });
 
@@ -35,18 +28,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const vipPrice = Number(body.vipPrice || 0);
-    const vipQuantity = Number(body.vipQuantity || 0);
-    const generalPrice = Number(body.generalPrice || 0);
-    const generalQuantity = Number(body.generalQuantity || 0);
-
-    if (!body.title || !body.artist || !body.location || !body.date) {
-      return NextResponse.json(
-        { error: "Faltan datos obligatorios" },
-        { status: 400 }
-      );
-    }
-
     const venue = await prisma.venue.findFirst();
 
     if (!venue) {
@@ -56,19 +37,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const tickets = [
-      ...Array.from({ length: vipQuantity }, () => ({
-        price: vipPrice,
-        section: "VIP",
-        status: "AVAILABLE" as const,
-      })),
-      ...Array.from({ length: generalQuantity }, () => ({
-        price: generalPrice,
-        section: "GENERAL",
-        status: "AVAILABLE" as const,
-      })),
-    ];
-
     const event = await prisma.event.create({
       data: {
         title: body.title,
@@ -77,16 +45,48 @@ export async function POST(req: Request) {
         location: body.location,
         description: body.description || "",
         date: new Date(body.date),
+        venueId: venue.id,
+      },
+    });
 
-        venue: {
-          connect: {
-            id: venue.id,
-          },
-        },
+    const vipQuantity = Math.max(
+      0,
+      parseInt(body.vipQuantity || "0", 10)
+    );
 
-        tickets: {
-          create: tickets,
-        },
+    const generalQuantity = Math.max(
+      0,
+      parseInt(body.generalQuantity || "0", 10)
+    );
+
+    const vipPrice = Number(body.vipPrice || 0);
+    const generalPrice = Number(body.generalPrice || 0);
+
+    if (vipQuantity > 0) {
+      await prisma.ticket.createMany({
+        data: Array.from({ length: vipQuantity }, () => ({
+          eventId: event.id,
+          price: vipPrice,
+          section: "VIP",
+          status: "AVAILABLE" as const,
+        })),
+      });
+    }
+
+    if (generalQuantity > 0) {
+      await prisma.ticket.createMany({
+        data: Array.from({ length: generalQuantity }, () => ({
+          eventId: event.id,
+          price: generalPrice,
+          section: "GENERAL",
+          status: "AVAILABLE" as const,
+        })),
+      });
+    }
+
+    const completeEvent = await prisma.event.findUnique({
+      where: {
+        id: event.id,
       },
       include: {
         venue: true,
@@ -94,14 +94,17 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(event);
+    return NextResponse.json(completeEvent);
   } catch (error) {
     console.error("CREATE EVENT ERROR:", error);
 
     return NextResponse.json(
       {
         error: "Error creando evento",
-        detail: error instanceof Error ? error.message : String(error),
+        detail:
+          error instanceof Error
+            ? error.message
+            : String(error),
       },
       { status: 500 }
     );
