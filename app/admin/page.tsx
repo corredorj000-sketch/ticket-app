@@ -1,39 +1,62 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import AdminEventActions from "./AdminEventActions";
 
 async function getEvents() {
-  const res = await fetch("http://localhost:3000/api/events", {
-    cache: "no-store",
+  return prisma.event.findMany({
+    orderBy: {
+      date: "asc",
+    },
+    include: {
+      venue: true,
+      tickets: {
+        select: {
+          id: true,
+          status: true,
+        },
+      },
+      zones: {
+        select: {
+          id: true,
+          zone: true,
+          quantity: true,
+          price: true,
+        },
+      },
+    },
   });
-
-  return res.json();
 }
 
 export default async function AdminDashboard() {
+  const session = await getServerSession(authOptions);
 
-  // PROTEGER RUTA ADMIN
-  const session = await getServerSession();
-
-  // SI NO HA INICIADO SESIÓN
-  if (!session) {
+  if (!session?.user?.email) {
     redirect("/login");
   }
 
-  // SI NO ES ADMIN
-  const email = session.user?.email;
+  const user = await prisma.user.findUnique({
+    where: {
+      email: session.user.email,
+    },
+  });
 
-const user = await prisma.user.findUnique({
-  where: {
-    email: email || "",
-  },
-});
-
-if (!user || user.role !== "ADMIN") {
-  redirect("/");
-}
+  if (!user || user.role !== "ADMIN") {
+    redirect("/");
+  }
 
   const events = await getEvents();
+
+  const ticketsSold = events.reduce(
+    (total, event) =>
+      total +
+      event.tickets.filter(
+        (ticket) => ticket.status === "SOLD"
+      ).length,
+    0
+  );
 
   return (
     <main className="min-h-screen bg-black text-white flex">
@@ -113,7 +136,7 @@ if (!user || user.role !== "ADMIN") {
             </p>
 
             <h3 className="text-5xl font-black">
-              0
+              {ticketsSold}
             </h3>
           </div>
 
@@ -132,7 +155,7 @@ if (!user || user.role !== "ADMIN") {
         {/* Events */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-          {events.map((event: any) => (
+          {events.map((event) => (
 
             <div
               key={event.id}
@@ -151,24 +174,18 @@ if (!user || user.role !== "ADMIN") {
                   {event.artist}
                 </h3>
 
+                <p className="text-zinc-500 mb-2">
+                  {event.title}
+                </p>
+
                 <p className="text-zinc-500 mb-5">
                   {event.location}
                 </p>
 
-                <div className="flex gap-3">
-
-                  <button className="bg-white text-black px-5 py-3 rounded-2xl font-semibold">
-                    Administrar
-                  </button>
-
-                  <a
-                    href={`/api/events/delete/${event.id}`}
-                    className="bg-red-600 px-4 py-2 rounded-xl font-bold"
-                  >
-                    Eliminar
-                  </a>
-
-                </div>
+                <AdminEventActions
+                  eventId={event.id}
+                  eventTitle={event.title}
+                />
 
               </div>
 

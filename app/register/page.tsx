@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation";
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [name, setName] =
+    useState("");
+  const [email, setEmail] =
+    useState("");
+  const [password, setPassword] =
+    useState("");
 
   const [loading, setLoading] =
     useState(false);
@@ -89,32 +92,36 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-4 py-10">
+    <main className="auth-page">
       <form
         onSubmit={handleRegister}
-        className="bg-zinc-900 border border-zinc-800 p-8 sm:p-10 rounded-3xl w-full max-w-md space-y-6"
+        className="auth-card max-w-[480px]"
       >
+        {/* Header */}
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-2">
+          <div className="auth-brand">
+            <span className="auth-brand-dot" />
             ClickTicketCo
-          </p>
+          </div>
 
-          <h1 className="text-4xl font-black">
-            Crear Cuenta
+          <h1 className="auth-title">
+            Crear cuenta
           </h1>
 
-          <p className="mt-3 text-sm text-zinc-400">
-            Crea tu cuenta para comprar y
-            gestionar tus entradas.
+          <p className="auth-subtitle">
+            Regístrate para comprar y
+            gestionar tus entradas de
+            manera sencilla.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-yellow-700/40 bg-yellow-950/20 p-5">
-          <p className="font-black text-yellow-300">
+        {/* Important notice */}
+        <div className="auth-notice mt-6">
+          <p className="auth-notice-title">
             ⚠️ Importante
           </p>
 
-          <p className="mt-2 text-sm leading-6 text-zinc-300">
+          <p className="auth-notice-text">
             Regístrate utilizando el mismo
             correo electrónico que tienes
             registrado en TuBoleta,
@@ -123,88 +130,125 @@ export default function RegisterPage() {
             entradas.
           </p>
 
-          <p className="mt-3 text-sm leading-6 text-zinc-400">
+          <p className="auth-notice-text">
             Este correo será utilizado para
             realizar el envío o transferencia
             de tu boletería.
           </p>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-zinc-300">
-            Nombre completo
-          </label>
+        {/* Form */}
+        <div className="auth-form">
+          {/* Name */}
+          <div className="auth-field">
+            <label
+              htmlFor="name"
+              className="auth-label"
+            >
+              Nombre completo
+            </label>
 
-          <input
-            type="text"
-            placeholder="Juan Pérez"
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 outline-none focus:border-white"
-            value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
-            autoComplete="name"
-            required
-          />
+            <input
+              id="name"
+              type="text"
+              placeholder="Juan Pérez"
+              className="auth-input"
+              value={name}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
+              autoComplete="name"
+              required
+            />
+          </div>
+
+          {/* Email */}
+          <div className="auth-field">
+            <label
+              htmlFor="email"
+              className="auth-label"
+            >
+              Correo electrónico
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              placeholder="tucorreo@gmail.com"
+              className="auth-input"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              autoComplete="email"
+              required
+            />
+
+            <p className="auth-help">
+              Utilizaremos este correo para
+              la comunicación y entrega de
+              tus entradas.
+            </p>
+          </div>
+
+          {/* Password */}
+          <div className="auth-field">
+            <label
+              htmlFor="password"
+              className="auth-label"
+            >
+              Contraseña
+            </label>
+
+            <input
+              id="password"
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              className="auth-input"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+
+            <p className="auth-help">
+              Mínimo 6 caracteres.
+            </p>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-submit"
+          >
+            {loading
+              ? "CREANDO CUENTA..."
+              : "CREAR CUENTA"}
+          </button>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-zinc-300">
-            Correo electrónico
-          </label>
-
-          <input
-            type="email"
-            placeholder="tucorreo@gmail.com"
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 outline-none focus:border-white"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            autoComplete="email"
-            required
-          />
-
-          <p className="mt-2 text-xs leading-5 text-zinc-500">
-            Utilizaremos este correo para
-            la comunicación y entrega de tus
-            entradas.
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-bold text-zinc-300">
-            Contraseña
-          </label>
-
-          <input
-            type="password"
-            placeholder="Mínimo 6 caracteres"
-            className="w-full p-4 rounded-xl bg-zinc-800 border border-zinc-700 outline-none focus:border-white"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            autoComplete="new-password"
-            minLength={6}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-white text-black py-4 rounded-xl font-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading
-            ? "CREANDO CUENTA..."
-            : "CREAR CUENTA"}
-        </button>
-
-        <p className="text-center text-sm text-zinc-500">
+        {/* Footer */}
+        <p className="auth-success-note">
           Al crear tu cuenta recibirás un
           correo de bienvenida.
         </p>
+
+        <div className="mt-5 border-t border-white/[0.06] pt-5 text-center">
+          <p className="text-sm text-zinc-500">
+            ¿Ya tienes una cuenta?
+          </p>
+
+          <a
+            href="/login"
+            className="mt-2 inline-block text-sm font-bold text-white transition-colors hover:text-zinc-400"
+          >
+            Iniciar sesión →
+          </a>
+        </div>
       </form>
     </main>
   );
