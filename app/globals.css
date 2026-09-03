@@ -82,17 +82,6 @@ body {
   }
 }
 
-@keyframes softGlow {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-
-  50% {
-    opacity: 0.6;
-  }
-}
-
 @keyframes buttonShine {
   0% {
     transform: translateX(-120%);
@@ -117,7 +106,7 @@ body {
 
 .auth-page {
   position: relative;
-  min-height: calc(100vh - 81px);
+  min-height: calc(100vh - 76px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -357,7 +346,7 @@ body {
 }
 
 /* =========================
-   RESPONSIVE AUTH
+   RESPONSIVE
 ========================= */
 
 @media (max-width: 640px) {
