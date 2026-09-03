@@ -26,11 +26,18 @@ export default function RegisterPage() {
     });
 
     if (res.ok) {
-      router.push("/login");
-    } else {
-      alert("Error creando cuenta");
-    }
-  }
+  router.push("/login");
+} else {
+  const data = await res.json().catch(() => null);
+
+  console.error("REGISTER RESPONSE:", data);
+
+  alert(
+    data?.detail ||
+    data?.error ||
+    `Error creando cuenta (${res.status})`
+  );
+}
 
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center">
