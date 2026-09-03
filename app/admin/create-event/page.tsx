@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import StadiumMap from "../../components/StadiumMap";
+import CloudinaryImageUpload from "../../components/CloudinaryImageUpload";
 
 type Venue = {
   id: string;
@@ -354,24 +355,13 @@ export default function CreateEventPage() {
           </div>
 
           {/* IMAGEN */}
-          <div>
-            <label className="block mb-2 text-zinc-400">
-              Imagen URL
-            </label>
-
-            <input
-              type="text"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4 outline-none focus:border-white"
-              placeholder="https://..."
-            />
-
-            <p className="text-zinc-600 text-sm mt-2">
-              Por ahora usamos una URL. Después conectaremos la
-              subida de imágenes desde el PC o celular.
-            </p>
-          </div>
+{/* IMAGEN */}
+<div>
+  <CloudinaryImageUpload
+    value={image}
+    onChange={setImage}
+  />
+</div>
 
           {/* DESCRIPCIÓN */}
           <div>

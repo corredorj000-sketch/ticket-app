@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "@/app/components/Navbar";
+import AuthProvider from "@/app/components/AuthProvider";
 
 export const metadata = {
   title: "ClickTicketCo",
@@ -14,8 +15,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="bg-black text-white">
-        <Navbar />
-        {children}
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
