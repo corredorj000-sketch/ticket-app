@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import CustomerStadiumMap, {
+  CustomerInventoryItem,
+} from "../../components/CustomerStadiumMap";
 
-type Ticket = {
+type Venue = {
   id: string;
-  price: number;
-  section: string;
-  status: "AVAILABLE" | "RESERVED" | "SOLD";
+  name: string;
+  city: string;
+  image: string;
 };
 
-type Event = {
+type EventData = {
   id: string;
   title: string;
   artist: string;
@@ -17,339 +21,353 @@ type Event = {
   location: string;
   description: string;
   date: string;
-  venue?: {
-    id: string;
-    name: string;
-    city: string;
-    image: string;
-  };
-  tickets: Ticket[];
+  venue: Venue;
+  zones: CustomerInventoryItem[];
 };
 
-export default function EventPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const [event, setEvent] = useState<Event | null>(null);
+export default function EventPage() {
+  const params = useParams();
+  const id = params.id as string;
+
+  const [event, setEvent] =
+    useState<EventData | null>(null);
+
   const [loading, setLoading] = useState(true);
 
-  const [section, setSection] = useState("GENERAL");
+  const [selectedZone, setSelectedZone] =
+    useState<CustomerInventoryItem | null>(null);
+
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     async function loadEvent() {
-      const { id } = await params;
+      try {
+        const res = await fetch(
+          `/api/events/${id}`,
+          {
+            cache: "no-store",
+          }
+        );
 
-      const res = await fetch(`/api/events/${id}`);
+        if (!res.ok) {
+          throw new Error(
+            "No se pudo cargar el evento"
+          );
+        }
 
-      if (res.ok) {
         const data = await res.json();
-        setEvent(data);
-      }
 
-      setLoading(false);
+        setEvent(data);
+      } catch (error) {
+        console.error(
+          "LOAD EVENT ERROR:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
     }
 
-    loadEvent();
-  }, [params]);
+    if (id) {
+      loadEvent();
+    }
+  }, [id]);
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        Cargando evento...
+      <main className="min-h-screen bg-black p-10 text-white">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-zinc-500">
+            Cargando evento...
+          </p>
+        </div>
       </main>
     );
   }
 
   if (!event) {
     return (
-      <main className="min-h-screen bg-black text-white p-10">
-        Evento no encontrado
+      <main className="min-h-screen bg-black p-10 text-white">
+        <div className="mx-auto max-w-6xl">
+          <h1 className="text-3xl font-black">
+            Evento no encontrado
+          </h1>
+        </div>
       </main>
     );
   }
 
-  const availableGeneral = event.tickets.filter(
-    (ticket) =>
-      ticket.section === "GENERAL" &&
-      ticket.status === "AVAILABLE"
+  const isMovistar =
+    event.venue?.id ===
+    "lugar-movistar-bogota";
+
+  const totalAvailable = event.zones.reduce(
+    (total, zone) =>
+      total +
+      Math.max(0, zone.quantity),
+    0
   );
 
-  const availableVip = event.tickets.filter(
-    (ticket) =>
-      ticket.section === "VIP" &&
-      ticket.status === "AVAILABLE"
-  );
+  const total =
+    selectedZone
+      ? selectedZone.price * quantity
+      : 0;
 
-  const available =
-    section === "VIP" ? availableVip : availableGeneral;
+  function handleZoneSelect(
+    zone: CustomerInventoryItem | null
+  ) {
+    setSelectedZone(zone);
 
-  const availableCount = available.length;
-
-  const price = available[0]?.price || 0;
-
-  const total = price * quantity;
-
-  const soldOut =
-    availableGeneral.length === 0 &&
-    availableVip.length === 0;
-
-  function changeSection(value: string) {
-    setSection(value);
-    setQuantity(1);
-  }
-
-  function increase() {
-    if (quantity < availableCount) {
-      setQuantity(quantity + 1);
+    if (zone) {
+      setQuantity(1);
     }
   }
 
-  function decrease() {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
+  function increaseQuantity() {
+    if (!selectedZone) return;
+
+    setQuantity((current) =>
+      Math.min(
+        selectedZone.quantity,
+        current + 1
+      )
+    );
   }
 
-  function handleBuy() {
-    if (availableCount === 0) return;
+  function decreaseQuantity() {
+    setQuantity((current) =>
+      Math.max(1, current - 1)
+    );
+  }
+
+  function handleContinue() {
+    if (!selectedZone) {
+      alert(
+        "Selecciona una zona primero."
+      );
+      return;
+    }
 
     alert(
-      `Compra preparada: ${quantity} entrada(s) por $${total.toLocaleString(
-        "es-CO"
-      )}`
+      `Seleccionaste ${quantity} boleta(s) de ${selectedZone.zone}.`
     );
   }
 
   return (
     <main className="min-h-screen bg-black text-white">
-
-      <div className="relative h-[500px]">
-
-        {event.image ? (
-          <img
-            src={event.image}
-            alt={event.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-zinc-900" />
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
-
-        <div className="absolute bottom-10 left-10">
-
-          <p className="text-zinc-300 text-xl mb-3">
-            {event.location}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mb-8">
+          <p className="mb-2 text-sm font-bold uppercase tracking-widest text-zinc-500">
+            {event.artist}
           </p>
 
-          <h1 className="text-7xl font-black max-w-4xl">
-            {event.artist}
+          <h1 className="text-4xl font-black tracking-tight sm:text-6xl">
+            {event.title}
           </h1>
 
+          <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-400">
+            <span>
+              📍 {event.venue?.name}
+            </span>
+
+            <span>
+              · {event.venue?.city}
+            </span>
+
+            <span>
+              ·{" "}
+              {new Date(
+                event.date
+              ).toLocaleDateString(
+                "es-CO"
+              )}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+          <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]">
+            <div className="border-b border-white/10 px-6 py-5">
+              <h2 className="text-2xl font-black">
+                Selecciona tu zona
+              </h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
-          <div className="lg:col-span-2">
-
-            <h2 className="text-4xl font-black mb-6">
-              {event.title}
-            </h2>
-
-            <p className="text-zinc-400 text-lg leading-relaxed mb-10">
-              {event.description}
-            </p>
-
-            <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-8">
-
-              <h3 className="text-2xl font-black mb-6">
-                Escenario
-              </h3>
-
-              <p className="text-xl">
-                {event.venue?.name || "Escenario"}
+              <p className="mt-1 text-sm text-zinc-500">
+                Haz clic sobre una zona disponible
+                para ver sus entradas.
               </p>
-
-              <p className="text-zinc-500 mt-2">
-                {event.venue?.city || event.location}
-              </p>
-
             </div>
 
-          </div>
+            {isMovistar ? (
+              <CustomerStadiumMap
+                inventory={event.zones}
+                selectedZone={
+                  selectedZone?.zone || ""
+                }
+                onZoneSelect={
+                  handleZoneSelect
+                }
+              />
+            ) : (
+              <div className="flex min-h-[400px] items-center justify-center bg-[#101010]">
+                <div className="text-center">
+                  <div className="mb-4 text-5xl">
+                    🗺️
+                  </div>
 
-          <div className="bg-zinc-950 border border-zinc-900 rounded-[32px] p-8 h-fit sticky top-28">
+                  <p className="text-xl font-black">
+                    Mapa próximamente
+                  </p>
 
-            <h3 className="text-3xl font-black mb-6">
+                  <p className="mt-2 text-sm text-zinc-500">
+                    Este escenario todavía no
+                    tiene mapa interactivo.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <aside className="h-fit rounded-[28px] border border-white/10 bg-[#111] p-6 lg:sticky lg:top-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
               Comprar Tickets
-            </h3>
+            </p>
 
-            <div className="space-y-4 mb-8">
+            <h2 className="mt-2 text-2xl font-black">
+              {selectedZone
+                ? selectedZone.zone
+                : "Selecciona una zona"}
+            </h2>
 
-              <div className="flex justify-between">
+            <div className="my-6 space-y-4 border-y border-white/10 py-6">
+              <div className="flex justify-between gap-4">
                 <span className="text-zinc-500">
                   Fecha
                 </span>
 
-                <span>
-                  {new Date(event.date).toLocaleDateString(
+                <span className="font-bold">
+                  {new Date(
+                    event.date
+                  ).toLocaleDateString(
                     "es-CO"
                   )}
                 </span>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-zinc-500">
                   Ciudad
                 </span>
 
-                <span>
-                  {event.location}
+                <span className="font-bold">
+                  {event.venue?.city}
                 </span>
               </div>
 
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">
+                  Disponibilidad
+                </span>
+
+                <span className="font-bold text-green-400">
+                  {totalAvailable} boletas
+                </span>
+              </div>
             </div>
 
-            {soldOut ? (
+            {selectedZone ? (
+              <>
+                <div>
+                  <p className="text-sm text-zinc-500">
+                    Precio por boleta
+                  </p>
 
-              <div className="rounded-2xl bg-red-950 border border-red-800 p-6 text-center">
+                  <p className="mt-1 text-2xl font-black">
+                    $
+                    {selectedZone.price.toLocaleString(
+                      "es-CO"
+                    )}
+                  </p>
 
-                <div className="text-red-500 text-3xl font-black mb-2">
-                  SOLD OUT
+                  <p className="mt-1 text-sm text-green-400">
+                    {selectedZone.quantity} disponibles
+                  </p>
                 </div>
 
-                <p className="text-red-300">
-                  No quedan entradas disponibles.
-                </p>
+                <div className="mt-6">
+                  <p className="mb-3 text-sm font-bold text-zinc-400">
+                    Cantidad
+                  </p>
 
-              </div>
-
-            ) : (
-
-              <div className="space-y-6">
-
-                <div>
-                  <label className="block text-zinc-400 mb-2">
-                    Tipo de entrada
-                  </label>
-
-                  <select
-                    value={section}
-                    onChange={(e) =>
-                      changeSection(e.target.value)
-                    }
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4"
-                  >
-                    {availableGeneral.length > 0 && (
-                      <option value="GENERAL">
-                        General — $
-                        {availableGeneral[0].price.toLocaleString(
-                          "es-CO"
-                        )}
-                      </option>
-                    )}
-
-                    {availableVip.length > 0 && (
-                      <option value="VIP">
-                        VIP — $
-                        {availableVip[0].price.toLocaleString(
-                          "es-CO"
-                        )}
-                      </option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-
-                  <div className="flex justify-between mb-2">
-
-                    <span className="text-zinc-400">
-                      Disponibles
-                    </span>
-
-                    <span className="font-bold">
-                      {availableCount}
-                    </span>
-
-                  </div>
-
-                  <div className="flex items-center justify-between bg-zinc-900 rounded-2xl p-2">
-
+                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black p-2">
                     <button
                       type="button"
-                      onClick={decrease}
-                      className="w-12 h-12 rounded-xl bg-zinc-800 text-2xl"
+                      onClick={
+                        decreaseQuantity
+                      }
+                      className="h-12 w-12 rounded-xl bg-white/10 text-xl font-black hover:bg-white/20"
                     >
                       −
                     </button>
 
-                    <span className="text-2xl font-black">
+                    <span className="text-xl font-black">
                       {quantity}
                     </span>
 
                     <button
                       type="button"
-                      onClick={increase}
-                      disabled={quantity >= availableCount}
-                      className="w-12 h-12 rounded-xl bg-zinc-800 text-2xl disabled:opacity-30"
+                      onClick={
+                        increaseQuantity
+                      }
+                      disabled={
+                        quantity >=
+                        selectedZone.quantity
+                      }
+                      className="h-12 w-12 rounded-xl bg-white/10 text-xl font-black hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       +
                     </button>
-
                   </div>
-
                 </div>
 
-                <div className="border-t border-zinc-800 pt-6">
+                <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-5">
+                  <span className="text-zinc-500">
+                    Total
+                  </span>
 
-                  <div className="flex justify-between text-zinc-400">
-                    <span>
-                      Precio unitario
-                    </span>
-
-                    <span>
-                      ${price.toLocaleString("es-CO")}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-2xl font-black mt-3">
-
-                    <span>
-                      TOTAL
-                    </span>
-
-                    <span>
-                      ${total.toLocaleString("es-CO")}
-                    </span>
-
-                  </div>
-
+                  <span className="text-3xl font-black">
+                    $
+                    {total.toLocaleString(
+                      "es-CO"
+                    )}
+                  </span>
                 </div>
 
                 <button
-                  onClick={handleBuy}
-                  className="w-full bg-white text-black py-4 rounded-2xl font-black text-lg hover:scale-[1.02] transition"
+                  type="button"
+                  onClick={
+                    handleContinue
+                  }
+                  className="mt-6 w-full rounded-2xl bg-white px-6 py-4 text-lg font-black text-black transition hover:scale-[1.01]"
                 >
-                  Comprar Ahora
+                  CONTINUAR
                 </button>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-black p-5 text-center">
+                <p className="font-bold text-white">
+                  Selecciona una zona en el mapa
+                </p>
 
+                <p className="mt-2 text-sm text-zinc-500">
+                  Allí podrás ver precio,
+                  disponibilidad y cantidad.
+                </p>
               </div>
-
             )}
-
-          </div>
-
+          </aside>
         </div>
-
-      </section>
-
+      </div>
     </main>
   );
 }

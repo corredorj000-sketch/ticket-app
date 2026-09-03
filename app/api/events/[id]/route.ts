@@ -9,11 +9,14 @@ export async function GET(
     const { id } = await params;
 
     const event = await prisma.event.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
       include: {
         venue: true,
+        zones: {
+          orderBy: {
+            zone: "asc",
+          },
+        },
         tickets: {
           select: {
             id: true,
@@ -37,7 +40,10 @@ export async function GET(
     console.error("GET EVENT ERROR:", error);
 
     return NextResponse.json(
-      { error: "Error obteniendo evento" },
+      {
+        error: "Error obteniendo evento",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -51,9 +57,7 @@ export async function DELETE(
     const { id } = await params;
 
     await prisma.event.delete({
-      where: {
-        id,
-      },
+      where: { id },
     });
 
     return NextResponse.json({
@@ -63,7 +67,10 @@ export async function DELETE(
     console.error("DELETE EVENT ERROR:", error);
 
     return NextResponse.json(
-      { error: "Error eliminando evento" },
+      {
+        error: "Error eliminando evento",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

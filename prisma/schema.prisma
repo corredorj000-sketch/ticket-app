@@ -8,15 +8,12 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(cuid())
-  name     String
-  email    String @unique
-  password String
-
-  role Role @default(USER)
-
-  orders Order[]
-
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  orders    Order[]
   createdAt DateTime @default(now())
 }
 
@@ -26,65 +23,62 @@ enum Role {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   artist      String
   image       String
   location    String
   description String
   date        DateTime
-
   venueId     String
-  venue       Venue @relation(fields: [venueId], references: [id])
-
-  createdAt   DateTime @default(now())
-
+  venue       Venue       @relation(fields: [venueId], references: [id])
+  createdAt   DateTime    @default(now())
   tickets     Ticket[]
+  zones       EventZone[]
 }
 
 model Venue {
-  id      String @id @default(cuid())
-
-  name    String
-  city    String
-  image   String
-
-  events  Event[]
+  id     String  @id @default(cuid())
+  name   String
+  city   String
+  image  String
+  events Event[]
 }
 
+model EventZone {
+  id        String   @id @default(cuid())
+  zone      String
+  quantity  Int      @default(0)
+  price     Float
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, zone])
+}
 
 model Ticket {
-  id String @id @default(cuid())
-
-  price   Float
-  section String
-  row     String?
-  seat    String?
-
-  status TicketStatus @default(AVAILABLE)
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id])
-
-  orders Order[]
-
-  createdAt DateTime @default(now())
+  id        String       @id @default(cuid())
+  price     Float
+  section   String
+  row       String?
+  seat      String?
+  status    TicketStatus @default(AVAILABLE)
+  eventId   String
+  event     Event        @relation(fields: [eventId], references: [id])
+  orders    Order[]
+  createdAt DateTime     @default(now())
 }
 
 model Order {
-  id String @id @default(cuid())
-
-  status OrderStatus @default(PENDING)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id])
-
-  total Float
-
-  createdAt DateTime @default(now())
+  id        String      @id @default(cuid())
+  status    OrderStatus @default(PENDING)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  ticketId  String
+  ticket    Ticket      @relation(fields: [ticketId], references: [id])
+  total     Float
+  createdAt DateTime    @default(now())
 }
 
 enum OrderStatus {
